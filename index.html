@@ -2,82 +2,116 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <title>我的夢幻任務城市 🏘️</title>
+    <title>夢幻城市 App 🏘️</title>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
-        :root { --main-blue: #a1c4fd; --grass-green: #7ed6df; --purple: #6c5ce7; --gold: #f1c40f; --red: #e74c3c; }
-        body { font-family: '微軟正黑體', sans-serif; background: #f0f2f5; margin: 0; display: flex; flex-direction: column; align-items: center; }
+        :root { --purple: #6c5ce7; --gold: #f1c40f; --green: #55efc4; --bg: #f0f2f5; }
+        body { font-family: '微軟正黑體', sans-serif; background: var(--bg); margin: 0; padding-bottom: 80px; }
         
-        /* 城市風景區 */
         #city-view {
-            width: 100%; height: 250px; 
+            width: 100%; height: 220px; 
             background: linear-gradient(to bottom, #a1c4fd 0%, #c2e9fb 100%);
-            position: relative; display: flex; align-items: flex-end; justify-content: center;
-            border-bottom: 8px solid var(--grass-green); overflow-x: auto; padding-bottom: 5px;
+            position: sticky; top: 0; display: flex; align-items: flex-end; justify-content: center;
+            border-bottom: 5px solid #7ed6df; overflow-x: auto; z-index: 5;
         }
-        .building { font-size: 50px; animation: bounceIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); margin: 0 5px; cursor: pointer; }
-        
-        .container { width: 95%; max-width: 600px; margin-top: -30px; z-index: 10; padding-bottom: 50px; }
-        .panel { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        
-        h2, h3 { color: var(--purple); margin-top: 0; }
-        input, textarea, button { width: 100%; padding: 12px; margin: 5px 0; border-radius: 10px; border: 1px solid #ddd; box-sizing: border-box; font-size: 1rem; }
-        button { background: var(--purple); color: white; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .cal-btn { width: auto; background: #fab1a0; margin-left: 5px; }
+        .building { font-size: 30px; margin: 0 2px; animation: bounceIn 0.5s; }
 
-        /* 任務卡片 */
-        .task-card { background: #fff; padding: 15px; border-radius: 12px; margin-bottom: 10px; border-left: 5px solid var(--purple); box-shadow: 0 2px 5px rgba(0,0,0,0.05); position: relative; }
-        .task-info strong { display: block; font-size: 1.1rem; color: #333; }
-        .deadline-badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; margin-top: 5px; font-weight: bold; }
-        .urgent { background: #ffeaa7; color: #d63031; border: 1px solid #d63031; }
-        .normal { background: #f1f2f6; color: #2f3542; }
+        .nav-bar {
+            position: fixed; bottom: 0; width: 100%; background: white;
+            display: flex; justify-content: space-around; padding: 10px 0;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 100;
+        }
+        .nav-item { text-align: center; font-size: 0.8rem; color: #666; cursor: pointer; }
+        .nav-item.active { color: var(--purple); font-weight: bold; }
+        .nav-icon { font-size: 24px; display: block; }
+
+        .content-area { display: none; padding: 20px; animation: fadeIn 0.3s; }
+        .content-area.active { display: block; }
+
+        .panel { background: white; padding: 15px; border-radius: 15px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .tag { display: inline-block; padding: 2px 8px; border-radius: 5px; font-size: 0.7rem; color: white; margin-right: 5px; }
+        .tag-work { background: #0984e3; }
+        .tag-school { background: #e17055; }
+        .tag-church { background: #6c5ce7; }
+        .tag-life { background: #00b894; }
+
+        .task-card { background: #f9f9f9; padding: 12px; border-radius: 10px; margin-bottom: 10px; border-left: 4px solid var(--purple); }
+        .deadline-badge { font-size: 0.75rem; font-weight: bold; margin-top: 5px; display: block; }
         
-        .actions { display: flex; gap: 8px; margin-top: 10px; }
-        .done-btn { background: #55efc4; flex: 1; }
+        /* 修改與完工按鈕縮小排版 */
+        .btn-group { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
+        button { border-radius: 8px; border: none; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn-edit { background: #dfe6e9; color: #636e72; padding: 6px 12px; font-size: 0.85rem; }
+        .btn-done { background: var(--green); color: #2d3436; padding: 6px 15px; font-size: 0.85rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        button:active { transform: scale(0.95); }
 
-        /* 博物館樣式 */
-        #museum { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 100; justify-content: center; align-items: center; }
-        .museum-content { background: #fdfdfd; width: 90%; max-width: 550px; padding: 25px; border-radius: 30px; max-height: 85vh; overflow-y: auto; text-align: center; }
-        .achievement-grid { display: grid; grid-template-columns: 1fr; gap: 15px; margin-top: 20px; }
-        .achieved-item { background: #fff; border: 2px solid #eee; border-radius: 15px; padding: 15px; display: flex; align-items: center; text-align: left; }
-        .achieved-icon { font-size: 40px; margin-right: 15px; }
+        #editModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 200; justify-content: center; align-items: center; }
+        .modal-box { background:white; padding:20px; border-radius:20px; width:85%; max-width:400px; }
+        .modal-box input, .modal-box select { width:100%; padding:10px; margin:10px 0; border-radius:10px; border:1px solid #ddd; box-sizing: border-box;}
 
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes bounceIn { from { transform: scale(0); } to { transform: scale(1); } }
     </style>
 </head>
 <body>
 
-<div id="city-view" onclick="openMuseum()"></div>
+<div id="city-view"></div>
 
-<div class="container">
+<div id="area-todo" class="content-area active">
     <div class="panel">
-        <h2>🏗️ 城市規劃署</h2>
-        <input type="text" id="tInput" placeholder="任務名稱">
-        <textarea id="dInput" placeholder="任務詳情..."></textarea>
-        <input type="datetime-local" id="dateInput">
-        <button onclick="addTask()">發布建築指令</button>
+        <h3>🏗️ 新增任務</h3>
+        <input type="text" id="tInput" placeholder="任務名稱" style="width:100%; padding:10px; border-radius:10px; border:1px solid #ddd; margin-bottom:5px;">
+        <select id="catInput" style="width:100%; padding:10px; margin:5px 0; border-radius:10px; border:1px solid #ddd;">
+            <option value="日常">日常 (Life)</option>
+            <option value="學業">學業 (School)</option>
+            <option value="工作">工作 (Work)</option>
+            <option value="教會">教會 (Church)</option>
+        </select>
+        <textarea id="dInput" placeholder="詳細內容..." style="width:100%; padding:10px; border-radius:10px; border:1px solid #ddd; margin-top:5px;"></textarea>
+        <input type="datetime-local" id="dateInput" style="width:100%; padding:10px; border-radius:10px; border:1px solid #ddd; margin-top:5px;">
+        <button onclick="addTask()" style="background:var(--purple); color:white; width:100%; padding:12px; margin-top:10px;">發布指令</button>
     </div>
-
-    <div class="panel">
-        <h3>📌 建築工地 (依期限排序)</h3>
-        <div id="taskList"></div>
-    </div>
-
-    <button onclick="openMuseum()" style="background: var(--gold); color: #333;">🏛️ 進入成就博物館</button>
+    <div id="taskList"></div>
 </div>
 
-<div id="museum" onclick="closeMuseum()">
-    <div class="museum-content" onclick="event.stopPropagation()">
-        <h2 style="color: var(--gold);">🏛️ 成就博物館</h2>
+<div id="area-finished" class="content-area">
+    <h3>✅ 最近完工</h3>
+    <div id="finishedList"></div>
+</div>
+
+<div id="area-museum" class="content-area">
+    <div style="text-align: center;">
+        <h2 style="color:var(--gold)">🏛️ 成就博物館</h2>
         <p>累計建築：<b id="totalBuildings">0</b></p>
-        <div id="achievementList" class="achievement-grid"></div>
-        <button onclick="closeMuseum()" style="margin-top: 25px; background: #636e72;">返回城市</button>
     </div>
+    <div id="achievementList"></div>
+</div>
+
+<div id="editModal">
+    <div class="modal-box">
+        <h3>✏️ 修改任務</h3>
+        <input type="text" id="editTitle" placeholder="任務名稱">
+        <select id="editCat">
+            <option value="日常">日常</option>
+            <option value="學業">學業</option>
+            <option value="工作">工作</option>
+            <option value="教會">教會</option>
+        </select>
+        <input type="datetime-local" id="editDate">
+        <button onclick="saveEdit()" style="background:var(--purple); color:white; width:100%; padding:10px; margin-top:10px;">儲存修改</button>
+        <button onclick="closeEdit()" style="background:#eee; color:#666; width:100%; padding:10px; margin-top:5px;">取消</button>
+    </div>
+</div>
+
+<div class="nav-bar">
+    <div class="nav-item active" onclick="switchArea('todo', this)"><span class="nav-icon">🏗️</span>工地</div>
+    <div class="nav-item" onclick="switchArea('finished', this)"><span class="nav-icon">✅</span>完工</div>
+    <div class="nav-item" onclick="switchArea('museum', this)"><span class="nav-icon">🏛️</span>成就</div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, onSnapshot, query, updateDoc, doc, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, onSnapshot, query, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBbKZWbc7sJT2OaSs_GG7xw15l9ljMzzMc",
@@ -92,100 +126,91 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const taskCol = collection(db, "myTasks");
+    let currentEditId = null;
 
     onSnapshot(taskCol, (snap) => {
         const tasks = [];
         snap.forEach(d => tasks.push({ id: d.id, ...d.data() }));
-        
-        // 排序：先按 done 狀態，未完成的按截止日期排序
-        tasks.sort((a, b) => {
-            if (a.done !== b.done) return a.done ? 1 : -1;
-            if (!a.deadline) return 1;
-            if (!b.deadline) return -1;
-            return new Date(a.deadline) - new Date(b.deadline);
-        });
-        
+        tasks.sort((a, b) => new Date(a.deadline || 9999999999999) - new Date(b.deadline || 9999999999999));
         updateUI(tasks);
     });
 
     window.addTask = async () => {
         const title = document.getElementById('tInput').value;
+        const category = document.getElementById('catInput').value;
         const desc = document.getElementById('dInput').value;
         const deadline = document.getElementById('dateInput').value;
         if (!title) return alert("請輸入名稱");
-        await addDoc(taskCol, { title, desc, deadline, done: false, timestamp: Date.now() });
+        await addDoc(taskCol, { title, category, desc, deadline, done: false, timestamp: Date.now() });
         document.getElementById('tInput').value = '';
         document.getElementById('dInput').value = '';
-        document.getElementById('dateInput').value = '';
     };
 
     window.finish = async (id) => {
         await updateDoc(doc(db, "myTasks", id), { done: true, finishTime: new Date().toLocaleString() });
-        confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+        confetti({ particleCount: 100, spread: 70, origin: { y: 0.8 } });
     };
 
-    function getCountdown(deadline) {
-        if (!deadline) return { text: "⏳ 無期限", class: "normal" };
-        const now = new Date();
-        const due = new Date(deadline);
-        const diffTime = due - now;
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    window.openEdit = (id, title, date, cat) => {
+        currentEditId = id;
+        document.getElementById('editTitle').value = title;
+        document.getElementById('editDate').value = date || '';
+        document.getElementById('editCat').value = cat || '日常';
+        document.getElementById('editModal').style.display = 'flex';
+    };
+    window.closeEdit = () => document.getElementById('editModal').style.display = 'none';
+    window.saveEdit = async () => {
+        await updateDoc(doc(db, "myTasks", currentEditId), {
+            title: document.getElementById('editTitle').value,
+            deadline: document.getElementById('editDate').value,
+            category: document.getElementById('editCat').value
+        });
+        closeEdit();
+    };
 
-        if (diffDays < 0) return { text: "❌ 已逾期", class: "urgent" };
-        if (diffDays === 0) return { text: "🔥 今天到期", class: "urgent" };
-        if (diffDays === 1) return { text: "🔔 明天到期", class: "urgent" };
-        return { text: `📅 還有 ${diffDays} 天`, class: "normal" };
-    }
-
-    window.addToCal = (title, desc, date) => {
-        const d = date ? date.replace(/[-:]/g, "") : "";
-        const url = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&details=${encodeURIComponent(desc)}&dates=${d}/${d}`;
-        window.open(url, '_blank');
+    window.switchArea = (area, el) => {
+        document.querySelectorAll('.content-area').forEach(a => a.classList.remove('active'));
+        document.getElementById('area-' + area).classList.add('active');
+        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+        el.classList.add('active');
     };
 
     function updateUI(tasks) {
         const taskList = document.getElementById('taskList');
+        const finishedList = document.getElementById('finishedList');
         const achievementList = document.getElementById('achievementList');
         const cityEl = document.getElementById('city-view');
-        taskList.innerHTML = ''; achievementList.innerHTML = ''; cityEl.innerHTML = '';
+        taskList.innerHTML = ''; finishedList.innerHTML = ''; achievementList.innerHTML = ''; cityEl.innerHTML = '';
 
-        const icons = ["🏠", "🏡", "🏢", "🏬", "🏫", "🏪", "🏰", "🎡", "⛲", "🌳"];
+        const icons = ["🏠", "🏡", "🏢", "🏫", "🏰", "🎡", "⛲", "🌳", "🏬", "🏪"];
         let doneCount = 0;
 
         tasks.forEach(t => {
+            const catClass = `tag-${t.category === '工作' ? 'work' : t.category === '學業' ? 'school' : t.category === '教會' ? 'church' : 'life'}`;
             if (!t.done) {
-                const countdown = getCountdown(t.deadline);
                 taskList.innerHTML += `
                     <div class="task-card">
-                        <div class="task-info">
-                            <strong>${t.title}</strong>
-                            <span class="deadline-badge ${countdown.class}">${countdown.text}</span>
-                            ${t.desc ? `<p>📝 ${t.desc}</p>` : ''}
-                        </div>
-                        <div class="actions">
-                            <button class="cal-btn" onclick="addToCal('${t.title}', '${t.desc}', '${t.deadline}')">📅</button>
-                            <button class="done-btn" onclick="finish('${t.id}')">完工!</button>
+                        <span class="tag ${catClass}">${t.category || '日常'}</span>
+                        <strong>${t.title}</strong>
+                        <span class="deadline-badge">${t.deadline ? '📅 ' + t.deadline.replace('T',' ') : '⏳ 無期限'}</span>
+                        <div class="btn-group">
+                            <button class="btn-edit" onclick="openEdit('${t.id}', '${t.title}', '${t.deadline}', '${t.category}')">✏️ 修改</button>
+                            <button class="btn-done" onclick="finish('${t.id}')">完工!</button>
                         </div>
                     </div>`;
             } else {
-                const myIcon = icons[doneCount % icons.length];
-                achievementList.innerHTML += `
-                    <div class="achieved-item">
-                        <div class="achieved-icon">${myIcon}</div>
-                        <div class="achieved-text"><strong>${t.title}</strong><small>完工: ${t.finishTime}</small></div>
-                    </div>`;
+                const icon = icons[doneCount % icons.length];
+                finishedList.innerHTML += `<div class="task-card" style="opacity:0.7"><b>${icon} ${t.title}</b></div>`;
+                achievementList.innerHTML += `<div class="panel"><b>${icon} ${t.title}</b><br><small>完工：${t.finishTime}</small></div>`;
                 const span = document.createElement('span');
                 span.className = 'building';
-                span.innerText = myIcon;
+                span.innerText = icon;
                 cityEl.appendChild(span);
                 doneCount++;
             }
         });
         document.getElementById('totalBuildings').innerText = doneCount;
     }
-
-    window.openMuseum = () => document.getElementById('museum').style.display = 'flex';
-    window.closeMuseum = () => document.getElementById('museum').style.display = 'none';
 </script>
 </body>
 </html>
